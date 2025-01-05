@@ -8,9 +8,10 @@ COMPLETED = 3
 FUTURE = 2
 
 class Machine:
-    def __init__(self, machine_id):
+    def __init__(self, machine_id, setup_time=0):
         self.machine_id = machine_id
         self.processed_op_history = []
+        self.setup_time = setup_time
     
     def process_op(self, op_info):
         machine_avai_time = self.avai_time()
@@ -23,6 +24,8 @@ class Machine:
     def avai_time(self):
         if len(self.processed_op_history) == 0:
             return 0
+        elif len(self.processed_op_history) % 3 == 0:
+            return self.processed_op_history[-1]["start_time"] + self.processed_op_history[-1]["process_time"] + self.setup_time
         else:
             return self.processed_op_history[-1]["start_time"] + self.processed_op_history[-1]["process_time"]
 
