@@ -9,6 +9,7 @@ def get_args():
     parser.add_argument('--data_size', type=int, default=10)
     parser.add_argument('--max_process_time', type=int, default=100, help='Maximum Process Time of an Operation')
     parser.add_argument('--delete_node', type=bool, default=False)
+    parser.add_argument('--q_time_limit', type=int, default=1e9)
     # args for RL
     parser.add_argument('--entropy_coef', type=float, default=1e-2)
     parser.add_argument('--episode', type=int, default=300001)

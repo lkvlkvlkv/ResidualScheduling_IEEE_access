@@ -36,13 +36,13 @@ def train():
 
             data, op_unfinished = env.get_graph_data()
             action_idx, action_prob = policy(avai_ops, data, op_unfinished, env.jsp_instance.graph.max_process_time)
-            avai_ops, reward, done = env.step(avai_ops[action_idx])
+            avai_ops, reward, done, terminate = env.step(avai_ops[action_idx])
 
             policy.rewards.append(-reward)
             policy.baselines.append(baseline)
             action_probs.append(action_prob)
             
-            if done:
+            if done or terminate:
                 optimizer.zero_grad()
                 loss, policy_loss, entropy_loss = policy.calculate_loss(args.device)
                 loss.backward()
@@ -59,8 +59,8 @@ def train():
                 policy.clear_memory()
                 ms = env.get_makespan()
                 improve = MWKR_ms - ms
-                print("Date : {} \t\t Episode : {} \t\tJob : {} \t\tMachine : {} \t\tPolicy : {} \t\tImprove: {} \t\t MWKR : {}".format(
-                    args.date, episode, env.jsp_instance.job_num, env.jsp_instance.machine_num, 
+                print("Date : {} \t\t Episode : {} \t\t Status : {} \t\tJob : {} \t\tMachine : {} \t\tPolicy : {} \t\tImprove: {} \t\t MWKR : {}".format(
+                    args.date, episode, 'Done' if done else 'Terminate', env.jsp_instance.job_num, env.jsp_instance.machine_num, 
                     ms, improve, MWKR_ms))
                 break
 

@@ -27,7 +27,7 @@ def eval_(episode, valid_sets=None):
             while True:
                 data, op_unfinished= env.get_graph_data()
                 action_idx, _ = policy(avai_ops, data, op_unfinished, env.jsp_instance.graph.max_process_time, greedy=True)
-                avai_ops, _, done = env.step(avai_ops[action_idx])
+                avai_ops, _, done, _ = env.step(avai_ops[action_idx])
 
                 if done:
                     ed = time.time()

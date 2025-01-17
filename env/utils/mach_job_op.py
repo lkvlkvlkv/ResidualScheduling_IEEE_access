@@ -65,6 +65,12 @@ class Job:
             return True
         else:
             return False
+    
+    def get_q_time(self):
+        if self.current_op_id == -1:
+            return self.operations[-1].finish_time - self.operations[0].start_time
+        else:
+            return self.current_op().avai_time - self.operations[0].start_time
 
 class Operation:
     def __init__(self, args, job_id, config):

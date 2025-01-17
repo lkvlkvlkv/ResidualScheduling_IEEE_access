@@ -16,6 +16,8 @@ class JSP_Instance:
         self.time_stamp = []
         self.current_time = 0
         self.max_process_time = 0
+        self.max_q_time = 0
+        self.max_job_id = 0
 
         self.graph = None
 
@@ -49,6 +51,8 @@ class JSP_Instance:
         self.machines = [Machine(machine_id) for machine_id in range(self.machine_num)]
         self.current_time = 0
         self.time_stamp = []
+        self.max_q_time = 0
+        self.max_job_id = 0
         self.generate_case()
 
     def load_instance(self, filename):
@@ -128,6 +132,8 @@ class JSP_Instance:
         if self.args.delete_node:
             self.graph.remove_node(job_id, self.jobs[job_id].operations[op_id])
 
+        self.update_max_q_time(job_id)
+
     def register_time(self, time):
         index = bisect.bisect_left(self.time_stamp, time)
         if index == len(self.time_stamp) or self.time_stamp[index] != time:
@@ -187,3 +193,12 @@ class JSP_Instance:
         
     def get_max_process_time(self):
         return self.graph.get_max_process_time()
+
+    def update_max_q_time(self, job_id):
+        q_time = self.jobs[job_id].get_q_time()
+        if q_time > self.max_q_time:
+            self.max_q_time = q_time
+            self.max_job_id = job_id
+
+    def get_max_q_time(self):
+        return self.max_q_time, self.max_job_id
