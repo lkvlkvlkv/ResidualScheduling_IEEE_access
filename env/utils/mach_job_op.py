@@ -43,6 +43,7 @@ class Job:
 
         self.acc_expected_process_time = list(accumulate([op.expected_process_time for op in self.operations[::-1]]))[::-1]
 
+        self.q_time_limit = self.acc_expected_process_time * self.args.q_time_limit_ratio
         
     def current_op(self):
         if self.current_op_id == -1:
@@ -71,6 +72,14 @@ class Job:
             return self.operations[-1].finish_time - self.operations[0].start_time
         else:
             return self.current_op().avai_time - self.operations[0].start_time
+    
+    def check_q_time(self):
+        q_time = self.get_q_time()
+        if q_time > self.q_time_limit:
+            print(f"Terminate: q_time limit exceeded, q_time: {q_time}, job_id: {self.job_id}")
+            return True
+        else:
+            return False
 
 class Operation:
     def __init__(self, args, job_id, config):
