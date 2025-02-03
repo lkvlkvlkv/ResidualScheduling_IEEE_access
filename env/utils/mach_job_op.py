@@ -43,7 +43,7 @@ class Job:
 
         self.acc_expected_process_time = list(accumulate([op.expected_process_time for op in self.operations[::-1]]))[::-1]
 
-        self.q_time_limit = self.acc_expected_process_time * self.args.q_time_limit_ratio
+        self.q_time_limit = self.acc_expected_process_time[0] * self.args.q_time_limit_ratio
         
     def current_op(self):
         if self.current_op_id == -1:
