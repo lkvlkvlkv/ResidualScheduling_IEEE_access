@@ -29,6 +29,8 @@ def train():
             avai_ops = env.reset()
 
         MWKR_ms = heuristic_makespan(copy.deepcopy(env), copy.deepcopy(avai_ops), args.rule)
+        accu_reward = 0
+        accu_penalty = 0
 
         while True:
             MWKR_baseline = heuristic_makespan(copy.deepcopy(env), copy.deepcopy(avai_ops), args.rule)
@@ -36,13 +38,17 @@ def train():
 
             data, op_unfinished = env.get_graph_data()
             action_idx, action_prob = policy(avai_ops, data, op_unfinished, env.jsp_instance.graph.max_process_time)
-            avai_ops, reward, done, terminate = env.step(avai_ops[action_idx])
+            avai_ops, reward, done, terminate, q_time_penalty = env.step(avai_ops[action_idx])
 
-            policy.rewards.append(-reward)
+            accu_reward += reward
+            accu_penalty += -q_time_penalty
+
+            # - ( reward - q_time_penalty )
+            policy.rewards.append(-reward + q_time_penalty)
             policy.baselines.append(baseline)
             action_probs.append(action_prob)
             
-            if done or terminate:
+            if done:
                 optimizer.zero_grad()
                 loss, policy_loss, entropy_loss = policy.calculate_loss(args.device)
                 loss.backward()
@@ -52,6 +58,8 @@ def train():
                     writer.add_scalar("loss", loss, episode)
                     writer.add_scalar("policy_loss", policy_loss, episode)
                     writer.add_scalar("entropy_loss", entropy_loss, episode)
+                    writer.add_scalar("accu_reward", accu_reward, episode)
+                    writer.add_scalar("accu_penalty", accu_penalty, episode)
                 
                 optimizer.step()
                 scheduler.step()

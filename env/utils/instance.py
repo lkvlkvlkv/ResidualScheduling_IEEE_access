@@ -108,6 +108,12 @@ class JSP_Instance:
 
     def terminate(self):
         return self.jobs[self.prev_job_id].check_q_time()
+
+    def get_q_time_penalty(self):
+        penalty = 0
+        for job in self.jobs:
+            penalty += job.exceed_q_time_penalty()
+        return penalty
     
     def get_graph_data(self):
         self.graph.update_feature(self.jobs, self.machines, self.current_time)

@@ -76,10 +76,17 @@ class Job:
     def check_q_time(self):
         q_time = self.get_q_time()
         if q_time > self.q_time_limit:
-            print(f"Terminate: q_time limit exceeded, q_time: {q_time}, job_id: {self.job_id}")
+            # print(f"Terminate: q_time limit exceeded, q_time: {q_time}, job_id: {self.job_id}")
             return True
         else:
             return False
+    
+    def exceed_q_time_penalty(self):
+        q_time = self.get_q_time()
+        if q_time > self.q_time_limit:
+            return q_time - self.q_time_limit
+        else:
+            return 0
 
 class Operation:
     def __init__(self, args, job_id, config):
