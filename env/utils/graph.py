@@ -68,9 +68,11 @@ class Graph:
     def update_feature(self, jobs, machines, current_time):
         self.op_x, self.m_x = [], []
         self.max_process_time = self.get_max_process_time()
+        self.max_q_time_limit = max([job.q_time_limit for job in jobs])
         # op feature
         # [status(2/4), exp process time, waiting time, remaining job]
         for i in range(len(jobs)):
+            remain_process_time = sum([jobs[i].operations[j].expected_process_time for j in range(self.current_op[i], jobs[i].op_num)])
             for j in range(self.current_op[i], len(jobs[i].operations)):
                 op = jobs[i].operations[j]
                 status = op.get_status(current_time)
@@ -89,6 +91,14 @@ class Graph:
                     feat.append(0)
 
                 feat.append(jobs[i].acc_expected_process_time[op.op_id] / jobs[i].acc_expected_process_time[0])
+                
+                if jobs[i].current_op_id != 0:
+                    deadline = jobs[i].operations[0].start_time + jobs[i].q_time_limit
+                    remain_q_time = max(0, deadline - current_time - remain_process_time)
+                    feat.append(remain_q_time / self.max_q_time_limit)
+                else:
+                    feat.append(1)
+                remain_process_time -= op.expected_process_time
 
                 self.op_x.append(feat) 
         # machine feature

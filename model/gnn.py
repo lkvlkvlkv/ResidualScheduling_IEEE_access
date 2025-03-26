@@ -51,8 +51,8 @@ class GNN(nn.Module):
         self.convs = torch.nn.ModuleList()
 
         if args.delete_node == True:
-            self.m_trans_fc = Linear(4, 5)
-            in_dim = 5
+            self.m_trans_fc = Linear(4, 6)
+            in_dim = 6
         else:
             self.m_trans_fc = Linear(4, 7)
             in_dim = 7
