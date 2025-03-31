@@ -27,7 +27,7 @@ def test():
                 ed = time.time()
                 policy.clear_memory()
 
-                new_row = pd.DataFrame([{'instance': file, 'makespan': env.get_makespan(), 'time': ed - st, 'terminate': 0 if q_time_limit_exceed else 1, 'exceed_q_time': exceed_q_time}])
+                new_row = pd.DataFrame([{'instance': file, 'makespan': env.get_makespan(), 'time': ed - st, 'terminate': 1 if q_time_limit_exceed else 0, 'exceed_q_time': exceed_q_time}])
                 data_frame = pd.concat([data_frame, new_row], ignore_index=True)
                 print("instance : {}, ms : {}, time : {}, q_time_limit_exceed : {}, exceed_q_time : {}".format(file, env.get_makespan(), ed - st, q_time_limit_exceed, exceed_q_time))
 
