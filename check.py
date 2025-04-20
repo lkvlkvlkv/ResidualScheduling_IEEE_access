@@ -5,26 +5,29 @@ import time
 import os
 import pandas as pd
 
-def test(test_dir, q_time_limit_ratio=1.5, time_limit=10.0):
-    data_frame = pd.DataFrame(columns=['instance', 'makespan', 'time', 'exceeded', 'exceed_q_time'])
+
+def test(test_dir, test_name, q_time_limit_ratio=1.5, time_limit=10.0, num_threads=1):
+    data_frame = pd.DataFrame(
+        columns=['instance', 'makespan', 'time', 'exceeded', 'exceed_q_time'])
 
     for instance in os.listdir(test_dir):
         file_path = os.path.join(test_dir, instance)
         jobs_data, num_machines = load_fjsp_instance(file_path)
-        continue
 
         model = cp_model.CpModel()
-        horizon = sum(max(opt[1] for opt in task) for job in jobs_data for task in job)
+        horizon = sum(max(opt[1] for opt in task)
+                      for job in jobs_data for task in job)
 
         all_tasks = {}
-        machine_to_intervals = [[] for _ in range(num_machines)]
+        machine_to_intervals = [[] for _ in range(num_machines+1)]
         task_ends = []
-        exceed_q_time_flag = False
+        job_q_time_diffs = []
 
         # 計算每個 job 的 Q-time 限制
         q_time_limits = []
         for job in jobs_data:
-            expected_process_times = [sum(opt[1] for opt in task) / len(task) for task in job]
+            expected_process_times = [
+                sum(opt[1] for opt in task) / len(task) for task in job]
             acc_expected = list(accumulate(expected_process_times[::-1]))[::-1]
             q_time_limit = acc_expected[0] * q_time_limit_ratio
             q_time_limits.append(q_time_limit)
@@ -39,7 +42,8 @@ def test(test_dir, q_time_limit_ratio=1.5, time_limit=10.0):
                 is_selected = []
                 for alt_id, (machine, duration) in enumerate(options):
                     selected = model.NewBoolVar(f'selected_{suffix}_{alt_id}')
-                    interval = model.NewOptionalIntervalVar(start_var, duration, end_var, selected, f'interval{suffix}_{alt_id}')
+                    interval = model.NewOptionalIntervalVar(
+                        start_var, duration, end_var, selected, f'interval{suffix}_{alt_id}')
                     is_selected.append(selected)
                     machine_to_intervals[machine].append(interval)
 
@@ -48,13 +52,12 @@ def test(test_dir, q_time_limit_ratio=1.5, time_limit=10.0):
                 all_tasks[(job_id, task_id)] = (start_var, end_var)
                 task_ends.append(end_var)
 
-                if previous_end:
+                if previous_end is not None:
                     model.Add(start_var >= previous_end)
                 previous_end = end_var
 
         for machine in range(num_machines):
             model.AddNoOverlap(machine_to_intervals[machine])
-
 
         for job_id, job in enumerate(jobs_data):
             first_start = all_tasks[(job_id, 0)][0]
@@ -69,6 +72,7 @@ def test(test_dir, q_time_limit_ratio=1.5, time_limit=10.0):
 
         solver = cp_model.CpSolver()
         solver.parameters.max_time_in_seconds = time_limit
+        solver.parameters.num_search_workers = num_threads
 
         st = time.time()
         status = solver.Solve(model)
@@ -79,26 +83,29 @@ def test(test_dir, q_time_limit_ratio=1.5, time_limit=10.0):
             for job_id, job in enumerate(jobs_data):
                 first_start = solver.Value(all_tasks[(job_id, 0)][0])
                 last_end = solver.Value(all_tasks[(job_id, len(job) - 1)][1])
-                if last_end - first_start > q_time_limits[job_id]:
-                    exceed_q_time_flag = True
+                job_q_time = last_end - first_start
+                job_q_limit = q_time_limits[job_id]
+                diff = max(0, job_q_time - job_q_limit)
+                job_q_time_diffs.append(diff)
         else:
-            computed_makespan = -1  # infeasible
+            computed_makespan = -1
 
         exceeded = 1 if status not in [cp_model.OPTIMAL, cp_model.FEASIBLE] else 0
+        max_q_time_violation = max(job_q_time_diffs) if job_q_time_diffs else 0
 
         new_row = pd.DataFrame([{
             'instance': instance,
             'makespan': computed_makespan,
             'time': ed - st,
             'exceeded': exceeded,
-            'exceed_q_time': int(exceed_q_time_flag)
+            'exceed_q_time': max_q_time_violation
         }])
 
         data_frame = pd.concat([data_frame, new_row], ignore_index=True)
-        print(f"instance: {instance}, makespan: {computed_makespan}, time: {ed - st:.2f}s, exceeded: {exceeded}, exceed_q_time: {exceed_q_time_flag}")
+        print(f"instance: {instance}, makespan: {computed_makespan}, time: {ed - st:.2f}s, exceeded: {exceeded}, exceed_q_time: {max_q_time_violation:.2f}")
 
-    os.makedirs("./result/or-tools/", exist_ok=True)
-    data_frame.to_csv(f"./result/or-tools/test_result.csv", index=False)
+    os.makedirs(f"./result/or-tools/{test_name}/", exist_ok=True)
+    data_frame.to_csv(f"./result/or-tools/{test_name}/test_result.csv", index=False)
 
 
 def load_fjsp_instance(file_path):
@@ -124,12 +131,16 @@ def load_fjsp_instance(file_path):
             jobs_data.append(job)
     return jobs_data, num_machines
 
+
 if __name__ == '__main__':
-    test_dirs=['./datasets/FJSP/Brandimarte_Data',
-              './datasets/FJSP/data_dev/1005', './datasets/FJSP/data_dev/1510', './datasets/FJSP/data_dev/2005', './datasets/FJSP/data_dev/2010',\
-            './datasets/FJSP/Hurink_Data/Text/edata','./datasets/FJSP/Hurink_Data/Text/rdata','./datasets/FJSP/Hurink_Data/Text/vdata']
-    q_time_limit_ratio=10000.0
-    time_limit = 100.0
-    for test_dir in test_dirs:
+    test_dirs = ['./datasets/FJSP/Brandimarte_Data',
+                 './datasets/FJSP/data_dev/1005', './datasets/FJSP/data_dev/1510', './datasets/FJSP/data_dev/2005', './datasets/FJSP/data_dev/2010',
+                 './datasets/FJSP/Hurink_Data/Text/edata', './datasets/FJSP/Hurink_Data/Text/rdata', './datasets/FJSP/Hurink_Data/Text/vdata']
+    test_names = ['Brandimarte_Data', '1005', '1510', '2005', '2010',
+                'edata', 'rdata', 'vdata']
+    q_time_limit_ratio = 10000.0
+    time_limit = 100
+    num_threads = 4
+    for test_dir, test_name in zip(test_dirs, test_names):
         print(f"Testing directory: {test_dir}")
-        test(test_dir, q_time_limit_ratio=q_time_limit_ratio, time_limit=time_limit)
+        test(test_dir, test_name, q_time_limit_ratio=q_time_limit_ratio, time_limit=time_limit, num_threads=num_threads)
