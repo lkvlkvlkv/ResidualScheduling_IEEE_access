@@ -20,3 +20,6 @@ RUN pip install --upgrade pip \
 
 # Set the entry point to start the container in interactive mode
 CMD ["bash"]
+
+podman run -it --name=tensorboard-container -p 6006:6006  -v $PWD:/ResidualScheduling_IEEE_access ubuntu:22.04
+# podman run --rm -it -p 6006:6006 --ipc=host --name tensorboard-container my_tensorboard_image
