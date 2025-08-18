@@ -14,7 +14,7 @@ class JSP_Env(gym.Env):
         self.jsp_instance.assign(step_op)
         avai_ops = self.jsp_instance.current_avai_ops()
         next_makespan = self.get_makespan()
-        return avai_ops, current_makespan - next_makespan, self.done()
+        return avai_ops, next_makespan - current_makespan, self.done()
     
     def reset(self):
         self.jsp_instance.reset()

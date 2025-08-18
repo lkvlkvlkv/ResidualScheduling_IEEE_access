@@ -38,7 +38,7 @@ def train():
             action_idx, action_prob = policy(avai_ops, data, op_unfinished, env.jsp_instance.graph.max_process_time)
             avai_ops, reward, done = env.step(avai_ops[action_idx])
 
-            policy.rewards.append(-reward)
+            policy.rewards.append(reward)
             policy.baselines.append(baseline)
             action_probs.append(action_prob)
             
